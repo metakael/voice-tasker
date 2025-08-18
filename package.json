@@ -10,7 +10,8 @@
   },
   "scripts": {
     "dev": "vercel dev --yes",
-    "get-google-token": "node scripts/get-google-token.js"
+    "get-google-token": "node scripts/get-google-token.js",
+    "vercel-build": "echo 'no build'"
   },
   "dependencies": {
     "dotenv": "^16"

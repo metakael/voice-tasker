@@ -1,12 +1,10 @@
 {
-  "version": 2,
   "functions": {
-    "api/*.js": {
-      "runtime": "nodejs18.x"
+    "api/**/*.js": {
+      "runtime": "nodejs20.x",
+      "maxDuration": 15,
+      "memory": 256
     }
-  },
-  "routes": [
-    { "src": "/api/(telegram|worker|list-tasklists)", "methods": ["GET", "POST"], "dest": "/api/$1.js" }
-  ]
+  }
 }
 
