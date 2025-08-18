@@ -1,0 +1,22 @@
+{
+  "name": "voice-tasker",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Telegram bot that converts voice notes into Google Tasks using OpenAI Whisper + GPT-5 Mini on Vercel.",
+  "type": "module",
+  "main": "api/telegram.js",
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "scripts": {
+    "dev": "vercel dev --yes",
+    "get-google-token": "node scripts/get-google-token.js"
+  },
+  "dependencies": {
+    "dotenv": "^16"
+  },
+  "devDependencies": {
+    "vercel": "^33"
+  }
+}
+
