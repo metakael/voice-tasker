@@ -51,9 +51,13 @@ export default async function handler(req, res) {
     console.log('[worker] google token');
     const accessToken = await getGoogleAccessToken();
 
-    // 5) Map category -> task list
+    // 5) Map category -> task list (name-to-list mapping must be provided; fallback to default)
     const categoryToList = env.CATEGORY_TO_LIST_MAP;
-    const listId = categoryToList[analysis.category] || env.DEFAULT_TASKLIST_ID || undefined;
+    let listId = categoryToList[analysis.category];
+    if (!listId) {
+      console.warn('[worker] no list mapping for category', analysis.category, 'raw:', analysis.categoryRaw);
+      listId = env.DEFAULT_TASKLIST_ID || undefined;
+    }
 
     // 6) Create task
     // De-duplicate by title + due (best-effort)
