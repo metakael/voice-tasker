@@ -30,8 +30,9 @@ export default async function handler(req, res) {
       return;
     }
 
-    // Enqueue to QStash
-    const enqueueUrl = 'https://qstash.upstash.io/v2/publish/json';
+    // Enqueue to QStash (URL-in-path style)
+    const targetUrl = `${env.PUBLIC_BASE_URL}/api/worker`;
+    const enqueueUrl = `https://qstash.upstash.io/v2/publish/${encodeURIComponent(targetUrl)}`;
     const payload = {
       chatId,
       fileId
@@ -40,7 +41,6 @@ export default async function handler(req, res) {
     const headers = {
       Authorization: `Bearer ${env.QSTASH_TOKEN}`,
       'Upstash-Method': 'POST',
-      'Upstash-Url': `${env.PUBLIC_BASE_URL}/api/worker`,
       'Upstash-Forward-Authorization': `Bearer ${env.WORKER_SHARED_SECRET}`,
       'Content-Type': 'application/json'
     };
