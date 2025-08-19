@@ -12,7 +12,8 @@ export default async function handler(req, res) {
     const update = await readJsonBody(req);
 
     // Only process voice messages
-    const voice = update?.message?.voice || update?.edited_message?.voice;
+    const msg = update?.message || update?.edited_message;
+    const voice = msg?.voice || msg?.audio || msg?.video_note;
     const chatId = update?.message?.chat?.id || update?.edited_message?.chat?.id;
     const fileId = voice?.file_id;
     console.log('[telegram] incoming', {
