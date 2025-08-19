@@ -14,10 +14,9 @@
     "vercel-build": "echo 'no build'"
   },
   "dependencies": {
-    "dotenv": "^16"
+    "dotenv": "^16.6.1"
   },
   "devDependencies": {
     "vercel": "^33"
   }
 }
-

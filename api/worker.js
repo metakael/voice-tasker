@@ -3,7 +3,7 @@ import { env } from '../lib/env.js';
 import { getGoogleAccessToken, createGoogleTask, listTasklists } from '../lib/google.js';
 import { getTelegramFileUrl, sendTelegramMessage, downloadArrayBuffer } from '../lib/telegram.js';
 import { transcribeAudio, analyzeTask } from '../lib/openai.js';
-import { sendJson } from '../lib/http.js';
+import { sendJson, readJsonBody } from '../lib/http.js';
 
 export default async function handler(req, res) {
   try {
@@ -16,7 +16,7 @@ export default async function handler(req, res) {
       return sendJson(res, 401, { error: 'Unauthorized' });
     }
 
-    const { chatId, fileId } = req.body || {};
+    const { chatId, fileId } = await readJsonBody(req);
     if (!chatId || !fileId) {
       return sendJson(res, 400, { error: 'Missing chatId or fileId' });
     }
