@@ -40,6 +40,7 @@ export default async function handler(req, res) {
     // 2) Transcribe via Whisper
     console.log('[worker] transcribing');
     const transcription = await transcribeAudio(audioBuffer);
+    console.log('[worker] transcription:', JSON.stringify(transcription));
     console.log('[worker] transcription length', transcription?.length || 0);
 
     // 3) Analyze with GPT-5 Mini
