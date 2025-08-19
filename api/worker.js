@@ -47,16 +47,39 @@ export default async function handler(req, res) {
     const analysis = await analyzeTask(transcription);
     console.log('[worker] analysis', analysis);
 
+    // Sanitize notes to remove any language labels or quoted original text
+    function sanitizeNotes(notes) {
+      if (!notes) return '';
+      let out = notes;
+      // Drop prefixes like: User request (Malay): '...'
+      out = out.replace(/^\s*User request[^:]*:\s*("[^"]*"|'[^']*'|[^—]*)(—\s*)?/i, '');
+      // Remove surrounding quotes if any remain
+      out = out.replace(/^\s*['"]|['"]\s*$/g, '');
+      return out.trim();
+    }
+    analysis.notes = sanitizeNotes(analysis.notes);
+
     // 4) Google access token
     console.log('[worker] google token');
     const accessToken = await getGoogleAccessToken();
 
-    // 5) Map category -> task list (name-to-list mapping must be provided; fallback to default)
+    // 5) Map category -> task list (env mapping, then dynamic match by list title, then default)
     const categoryToList = env.CATEGORY_TO_LIST_MAP;
+    console.log('[worker] mapping category', analysis.category, 'available mappings:', Object.keys(categoryToList || {}));
     let listId = categoryToList[analysis.category];
     if (!listId) {
-      console.warn('[worker] no list mapping for category', analysis.category, 'raw:', analysis.categoryRaw);
-      listId = env.DEFAULT_TASKLIST_ID || undefined;
+      console.warn('[worker] no list mapping for category', analysis.category, 'raw:', analysis.categoryRaw, '— attempting dynamic match by title');
+      const accessToken = await getGoogleAccessToken();
+      const lists = await listTasklists(accessToken);
+      const found = lists.find((l) => l.title === analysis.category);
+      if (found) {
+        listId = found.id;
+        console.log('[worker] dynamically matched list id', listId, 'for title', analysis.category);
+      }
+      if (!listId) {
+        listId = env.DEFAULT_TASKLIST_ID || undefined;
+        console.warn('[worker] using default list id', listId || '@default');
+      }
     }
 
     // 6) Create task
