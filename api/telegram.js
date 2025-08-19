@@ -29,7 +29,7 @@ export default async function handler(req, res) {
 
     // Enqueue to QStash (URL-in-path style)
     const targetUrl = `${env.PUBLIC_BASE_URL}/api/worker`;
-    const enqueueUrl = `https://qstash.upstash.io/v2/publish/${encodeURIComponent(targetUrl)}`;
+    const enqueueUrl = `https://qstash.upstash.io/v2/publish/${targetUrl}`;
     const payload = {
       chatId,
       fileId
