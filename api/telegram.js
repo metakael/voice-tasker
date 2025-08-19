@@ -15,6 +15,11 @@ export default async function handler(req, res) {
     const voice = update?.message?.voice || update?.edited_message?.voice;
     const chatId = update?.message?.chat?.id || update?.edited_message?.chat?.id;
     const fileId = voice?.file_id;
+    console.log('[telegram] incoming', {
+      hasVoice: Boolean(fileId),
+      chatId,
+      messageId: update?.message?.message_id || update?.edited_message?.message_id
+    });
 
     // Ignore non-voice updates
     if (!fileId || !chatId) {
@@ -36,11 +41,12 @@ export default async function handler(req, res) {
       'Content-Type': 'application/json'
     };
 
-    await fetch(enqueueUrl, {
+    const resp = await fetch(enqueueUrl, {
       method: 'POST',
       headers,
       body: JSON.stringify(payload)
     });
+    console.log('[telegram] qstash publish status', resp.status);
 
     return sendJson(res, 200, { ok: true });
   } catch (error) {

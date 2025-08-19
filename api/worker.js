@@ -13,25 +13,35 @@ export default async function handler(req, res) {
 
     const authHeader = req.headers['authorization'] || req.headers['Authorization'];
     if (!authHeader || authHeader !== `Bearer ${env.WORKER_SHARED_SECRET}`) {
+      console.warn('[worker] unauthorized request');
       return sendJson(res, 401, { error: 'Unauthorized' });
     }
 
-    const { chatId, fileId } = await readJsonBody(req);
+    const body = await readJsonBody(req);
+    const { chatId, fileId } = body;
+    console.log('[worker] payload', { hasChatId: Boolean(chatId), hasFileId: Boolean(fileId) });
     if (!chatId || !fileId) {
       return sendJson(res, 400, { error: 'Missing chatId or fileId' });
     }
 
     // 1) Download voice from Telegram
+    console.log('[worker] fetching telegram file');
     const fileUrl = await getTelegramFileUrl(fileId);
+    console.log('[worker] file url', fileUrl);
     const audioBuffer = await downloadArrayBuffer(fileUrl);
 
     // 2) Transcribe via Whisper
+    console.log('[worker] transcribing');
     const transcription = await transcribeAudio(audioBuffer);
+    console.log('[worker] transcription length', transcription?.length || 0);
 
     // 3) Analyze with GPT-5 Mini
+    console.log('[worker] analyzing');
     const analysis = await analyzeTask(transcription);
+    console.log('[worker] analysis', analysis);
 
     // 4) Google access token
+    console.log('[worker] google token');
     const accessToken = await getGoogleAccessToken();
 
     // 5) Map category -> task list
@@ -39,6 +49,7 @@ export default async function handler(req, res) {
     const listId = categoryToList[analysis.category] || env.DEFAULT_TASKLIST_ID || undefined;
 
     // 6) Create task
+    console.log('[worker] creating task');
     const createdTask = await createGoogleTask({
       accessToken,
       listId,
@@ -49,11 +60,12 @@ export default async function handler(req, res) {
 
     // 7) Send confirmation
     const confirm = `✅ Task created: ${analysis.title}${analysis.due ? ` (due ${analysis.due})` : ''}`;
+    console.log('[worker] sending confirmation');
     await sendTelegramMessage(chatId, confirm);
 
     return sendJson(res, 200, { ok: true, transcription, analysis, createdTask });
   } catch (error) {
-    console.error('worker error:', error);
+    console.error('[worker] error:', error);
     try {
       const body = req.body || {};
       if (body.chatId) {
