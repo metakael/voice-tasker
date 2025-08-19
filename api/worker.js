@@ -1,6 +1,6 @@
 import 'dotenv/config';
 import { env } from '../lib/env.js';
-import { getGoogleAccessToken, createGoogleTask, listTasklists } from '../lib/google.js';
+import { getGoogleAccessToken, createGoogleTask, listTasklists, findDuplicateTask } from '../lib/google.js';
 import { getTelegramFileUrl, sendTelegramMessage, downloadArrayBuffer } from '../lib/telegram.js';
 import { transcribeAudio, analyzeTask } from '../lib/openai.js';
 import { sendJson, readJsonBody } from '../lib/http.js';
@@ -56,8 +56,13 @@ export default async function handler(req, res) {
     const listId = categoryToList[analysis.category] || env.DEFAULT_TASKLIST_ID || undefined;
 
     // 6) Create task
+    // De-duplicate by title + due (best-effort)
+    const existing = await findDuplicateTask({ accessToken, listId, title: analysis.title, due: analysis.due || undefined });
+    if (existing) {
+      console.log('[worker] duplicate task detected, skipping create');
+    }
     console.log('[worker] creating task');
-    const createdTask = await createGoogleTask({
+    const createdTask = existing || await createGoogleTask({
       accessToken,
       listId,
       title: analysis.title,

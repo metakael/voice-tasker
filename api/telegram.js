@@ -46,9 +46,10 @@ export default async function handler(req, res) {
       console.log('[telegram] publishing to qstash', { targetUrl });
       const ac = new AbortController();
       const timer = setTimeout(() => ac.abort(), 1500);
+      const idempotencyKey = `${chatId}:${update?.message?.message_id || update?.edited_message?.message_id}`;
       const resp = await fetch(enqueueUrl, {
         method: 'POST',
-        headers,
+        headers: { ...headers, 'Upstash-Idempotency-Key': idempotencyKey },
         body: JSON.stringify(payload),
         signal: ac.signal
       });
