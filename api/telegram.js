@@ -22,12 +22,15 @@ export default async function handler(req, res) {
       messageId: update?.message?.message_id || update?.edited_message?.message_id
     });
 
-    // Ignore non-voice updates
+    // ACK immediately to keep webhook fast
+    sendJson(res, 200, { ok: true });
+
+    // Ignore non-voice updates after ACK
     if (!fileId || !chatId) {
-      return sendJson(res, 200, { ok: true });
+      return;
     }
 
-    // Enqueue to QStash, then ACK
+    // Enqueue to QStash
     const enqueueUrl = 'https://qstash.upstash.io/v2/publish/json';
     const payload = {
       chatId,
@@ -42,14 +45,21 @@ export default async function handler(req, res) {
       'Content-Type': 'application/json'
     };
 
-    const resp = await fetch(enqueueUrl, {
-      method: 'POST',
-      headers,
-      body: JSON.stringify(payload)
-    });
-    console.log('[telegram] qstash publish status', resp.status);
-
-    return sendJson(res, 200, { ok: true });
+    try {
+      const resp = await fetch(enqueueUrl, {
+        method: 'POST',
+        headers,
+        body: JSON.stringify(payload)
+      });
+      if (!resp.ok) {
+        const text = await resp.text();
+        console.error('[telegram] qstash publish failed', resp.status, text);
+      } else {
+        console.log('[telegram] qstash publish status', resp.status);
+      }
+    } catch (err) {
+      console.error('[telegram] qstash publish error', err);
+    }
   } catch (error) {
     // Best-effort logging only; webhook already ACKed
     console.error('telegram webhook error:', error);

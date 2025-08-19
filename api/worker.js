@@ -24,6 +24,13 @@ export default async function handler(req, res) {
       return sendJson(res, 400, { error: 'Missing chatId or fileId' });
     }
 
+    // Notify user early
+    try {
+      await sendTelegramMessage(chatId, '🎙️ Processing your voice note...');
+    } catch (e) {
+      console.warn('[worker] failed to send early message');
+    }
+
     // 1) Download voice from Telegram
     console.log('[worker] fetching telegram file');
     const fileUrl = await getTelegramFileUrl(fileId);
