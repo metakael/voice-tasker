@@ -18,10 +18,15 @@ export default async function handler(req, res) {
     }
 
     const body = await readJsonBody(req);
-    const { chatId, fileId } = body;
+    const { chatId, fileId, fromId } = body;
     console.log('[worker] payload', { hasChatId: Boolean(chatId), hasFileId: Boolean(fileId) });
     if (!chatId || !fileId) {
       return sendJson(res, 400, { error: 'Missing chatId or fileId' });
+    }
+
+    // Enforce allowed Telegram user
+    if (env.TELEGRAM_ALLOWED_USER_ID && fromId && fromId !== env.TELEGRAM_ALLOWED_USER_ID) {
+      return sendJson(res, 200, { ok: true });
     }
 
     // Notify user early

@@ -15,6 +15,7 @@ export default async function handler(req, res) {
     const msg = update?.message || update?.edited_message;
     const voice = msg?.voice || msg?.audio || msg?.video_note;
     const chatId = update?.message?.chat?.id || update?.edited_message?.chat?.id;
+    const fromId = update?.message?.from?.id || update?.edited_message?.from?.id;
     const fileId = voice?.file_id;
     console.log('[telegram] incoming', {
       hasVoice: Boolean(fileId),
@@ -22,8 +23,8 @@ export default async function handler(req, res) {
       messageId: update?.message?.message_id || update?.edited_message?.message_id
     });
 
-    // If non-voice, just ACK and return
-    if (!fileId || !chatId) {
+    // If non-voice, or not allowed user, just ACK and return
+    if (!fileId || !chatId || (env.TELEGRAM_ALLOWED_USER_ID && fromId !== env.TELEGRAM_ALLOWED_USER_ID)) {
       return sendJson(res, 200, { ok: true });
     }
 
@@ -32,7 +33,8 @@ export default async function handler(req, res) {
     const enqueueUrl = `https://qstash.upstash.io/v2/publish/${targetUrl}`;
     const payload = {
       chatId,
-      fileId
+      fileId,
+      fromId
     };
 
     const headers = {
