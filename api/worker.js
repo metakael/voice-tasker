@@ -99,7 +99,7 @@ export default async function handler(req, res) {
     });
 
     // 7) Send confirmation
-    const confirm = `✅ Task created: ${analysis.title}${analysis.due ? ` (due ${analysis.due})` : ''}`;
+    const confirm = `✅ Task created in ${analysis.category}: ${analysis.title}${analysis.due ? ` (due ${analysis.due})` : ''}`;
     console.log('[worker] sending confirmation');
     await sendTelegramMessage(chatId, confirm);
 
