@@ -2,6 +2,7 @@ import 'dotenv/config';
 import { env } from '../lib/env.js';
 import { sendJson } from '../lib/http.js';
 import { sendTelegramMessage } from '../lib/telegram.js';
+import { collectAndAnalyzeTasks } from '../lib/summary.js';
 
 // Fast ACK webhook that enqueues to QStash
 export default async function handler(req, res) {
@@ -31,9 +32,15 @@ export default async function handler(req, res) {
         console.error('Failed to send summary ack message:', err);
       }
 
-      const summaryUrl = `${env.PUBLIC_BASE_URL}/api/daily-summary${env.SUMMARY_SECRET_KEY ? `?key=${encodeURIComponent(env.SUMMARY_SECRET_KEY)}` : ''}`;
-      console.log('Triggering daily summary', { summaryUrl });
-      fetch(summaryUrl).catch((e) => console.error('Failed to trigger daily summary:', e));
+      try {
+        const { messageText } = await collectAndAnalyzeTasks();
+        await sendTelegramMessage(chatId, messageText);
+      } catch (e) {
+        console.error('Summary generation failed:', e);
+        try {
+          await sendTelegramMessage(chatId, '❌ Failed to generate summary. Please try again later.');
+        } catch {}
+      }
       return; // nothing else to do
     }
 
