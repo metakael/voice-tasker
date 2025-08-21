@@ -1,6 +1,7 @@
 import 'dotenv/config';
 import { env } from '../lib/env.js';
 import { sendJson } from '../lib/http.js';
+import { sendTelegramMessage } from '../lib/telegram.js';
 
 // Fast ACK webhook that enqueues to QStash
 export default async function handler(req, res) {
@@ -22,18 +23,17 @@ export default async function handler(req, res) {
 
     // Handle manual summary command
     const commandToken = messageText.split(/\s+/)[0];
-    if (/^\/summary(@[A-Za-z0-9_]+)?$/.test(commandToken) && chatId) {
-      // Fire-and-forget immediate ack is already sent above.
+    if (/^\/summary(@[A-Za-z0-9_]+)?(\b|$)/.test(commandToken) && chatId) {
+      console.log('Telegram /summary command detected', { chatId, commandToken });
       try {
-        await fetch(`https://api.telegram.org/bot${(env.TELEGRAM_BOT_TOKEN || '').replace(/^bot/i, '')}/sendMessage`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ chat_id: chatId, text: '🔄 Generating your daily summary...' })
-        });
-      } catch {}
+        await sendTelegramMessage(chatId, '🔄 Generating your daily summary...');
+      } catch (err) {
+        console.error('Failed to send summary ack message:', err);
+      }
 
       const summaryUrl = `${env.PUBLIC_BASE_URL}/api/daily-summary${env.SUMMARY_SECRET_KEY ? `?key=${encodeURIComponent(env.SUMMARY_SECRET_KEY)}` : ''}`;
-      fetch(summaryUrl).catch(() => {});
+      console.log('Triggering daily summary', { summaryUrl });
+      fetch(summaryUrl).catch((e) => console.error('Failed to trigger daily summary:', e));
       return; // nothing else to do
     }
 
