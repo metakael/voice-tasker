@@ -1,6 +1,6 @@
 import 'dotenv/config';
 import { env } from '../lib/env.js';
-import { sendJson, readJsonBody } from '../lib/http.js';
+import { sendJson } from '../lib/http.js';
 
 // Fast ACK webhook that enqueues to QStash
 export default async function handler(req, res) {
@@ -9,65 +9,58 @@ export default async function handler(req, res) {
       return sendJson(res, 405, { error: 'Method Not Allowed' });
     }
 
-    const update = await readJsonBody(req);
+    const update = req.body || {};
 
+    const messageText = (update?.message?.text || update?.edited_message?.text || '').trim();
     // Only process voice messages
-    const msg = update?.message || update?.edited_message;
-    const voice = msg?.voice || msg?.audio || msg?.video_note;
+    const voice = update?.message?.voice || update?.edited_message?.voice;
     const chatId = update?.message?.chat?.id || update?.edited_message?.chat?.id;
-    const fromId = update?.message?.from?.id || update?.edited_message?.from?.id;
     const fileId = voice?.file_id;
-    console.log('[telegram] incoming', {
-      hasVoice: Boolean(fileId),
-      chatId,
-      messageId: update?.message?.message_id || update?.edited_message?.message_id
-    });
 
-    // If non-voice, or not allowed user, just ACK and return
-    if (!fileId || !chatId || (env.TELEGRAM_ALLOWED_USER_ID && fromId !== env.TELEGRAM_ALLOWED_USER_ID)) {
-      return sendJson(res, 200, { ok: true });
+    // Always ACK quickly
+    sendJson(res, 200, { ok: true });
+
+    // Handle manual summary command
+    const commandToken = messageText.split(/\s+/)[0];
+    if (/^\/summary(@[A-Za-z0-9_]+)?$/.test(commandToken) && chatId) {
+      // Fire-and-forget immediate ack is already sent above.
+      try {
+        await fetch(`https://api.telegram.org/bot${(env.TELEGRAM_BOT_TOKEN || '').replace(/^bot/i, '')}/sendMessage`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ chat_id: chatId, text: '🔄 Generating your daily summary...' })
+        });
+      } catch {}
+
+      const summaryUrl = `${env.PUBLIC_BASE_URL}/api/daily-summary${env.SUMMARY_SECRET_KEY ? `?key=${encodeURIComponent(env.SUMMARY_SECRET_KEY)}` : ''}`;
+      fetch(summaryUrl).catch(() => {});
+      return; // nothing else to do
     }
 
-    // Enqueue to QStash (URL-in-path style)
-    const targetUrl = `${env.PUBLIC_BASE_URL}/api/worker`;
-    const enqueueUrl = `https://qstash.upstash.io/v2/publish/${targetUrl}`;
+    if (!fileId || !chatId) {
+      return; // ignore non-voice updates
+    }
+
+    // Enqueue to QStash
+    const enqueueUrl = 'https://qstash.upstash.io/v2/publish/json';
     const payload = {
       chatId,
-      fileId,
-      fromId
+      fileId
     };
 
     const headers = {
       Authorization: `Bearer ${env.QSTASH_TOKEN}`,
       'Upstash-Method': 'POST',
+      'Upstash-Url': `${env.PUBLIC_BASE_URL}/api/worker`,
       'Upstash-Forward-Authorization': `Bearer ${env.WORKER_SHARED_SECRET}`,
       'Content-Type': 'application/json'
     };
 
-    try {
-      console.log('[telegram] publishing to qstash', { targetUrl });
-      const ac = new AbortController();
-      const timer = setTimeout(() => ac.abort(), 1500);
-      const idempotencyKey = `${chatId}:${update?.message?.message_id || update?.edited_message?.message_id}`;
-      const resp = await fetch(enqueueUrl, {
-        method: 'POST',
-        headers: { ...headers, 'Upstash-Idempotency-Key': idempotencyKey },
-        body: JSON.stringify(payload),
-        signal: ac.signal
-      });
-      clearTimeout(timer);
-      if (!resp.ok) {
-        const text = await resp.text();
-        console.error('[telegram] qstash publish failed', resp.status, text);
-      } else {
-        console.log('[telegram] qstash publish status', resp.status);
-      }
-    } catch (err) {
-      console.error('[telegram] qstash publish error', err?.name || err, String(err));
-    }
-
-    // Finally ACK
-    return sendJson(res, 200, { ok: true });
+    await fetch(enqueueUrl, {
+      method: 'POST',
+      headers,
+      body: JSON.stringify(payload)
+    });
   } catch (error) {
     // Best-effort logging only; webhook already ACKed
     console.error('telegram webhook error:', error);
