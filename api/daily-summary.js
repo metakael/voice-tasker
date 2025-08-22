@@ -263,8 +263,9 @@ export default async function handler(req, res) {
     }
 
     if (env.SUMMARY_SECRET_KEY) {
+      const cronHeader = req.headers['x-vercel-cron'];
       const key = req.query?.key || req.headers['x-summary-key'];
-      if (key !== env.SUMMARY_SECRET_KEY) {
+      if (!cronHeader && key !== env.SUMMARY_SECRET_KEY) {
         return sendJson(res, 401, { error: 'Unauthorized' });
       }
     }
