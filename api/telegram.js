@@ -43,6 +43,7 @@ export default async function handler(req, res) {
     console.log('Enqueuing voice for processing', { chatId, hasFileId: !!fileId });
     const targetUrl = `${env.PUBLIC_BASE_URL}/api/worker`;
     const enqueueUrl = `https://qstash.upstash.io/v2/publish/${targetUrl}`;
+    console.log('QStash URL being used:', enqueueUrl);
     const payload = {
       chatId,
       fileId
