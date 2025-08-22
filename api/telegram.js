@@ -39,6 +39,13 @@ export default async function handler(req, res) {
       return sendJson(res, 200, { ok: true }); // ignore non-voice updates
     }
 
+    // Send immediate processing message
+    try {
+      await sendTelegramMessage(chatId, '🎤 Processing your voice note...');
+    } catch (err) {
+      console.error('Failed to send processing ack:', err);
+    }
+
     // Enqueue to QStash
     console.log('Enqueuing voice for processing', { chatId, hasFileId: !!fileId });
     const targetUrl = `${env.PUBLIC_BASE_URL}/api/worker`;
