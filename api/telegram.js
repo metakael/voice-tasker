@@ -2,7 +2,6 @@ import 'dotenv/config';
 import { env } from '../lib/env.js';
 import { sendJson } from '../lib/http.js';
 import { sendTelegramMessage } from '../lib/telegram.js';
-import { collectAndAnalyzeTasks } from '../lib/summary.js';
 
 // Fast ACK webhook that enqueues to QStash
 export default async function handler(req, res) {
@@ -32,15 +31,10 @@ export default async function handler(req, res) {
         console.error('Failed to send summary ack message:', err);
       }
 
-      try {
-        const { messageText } = await collectAndAnalyzeTasks();
-        await sendTelegramMessage(chatId, messageText);
-      } catch (e) {
-        console.error('Summary generation failed:', e);
-        try {
-          await sendTelegramMessage(chatId, '❌ Failed to generate summary. Please try again later.');
-        } catch {}
-      }
+      // Fire-and-forget trigger of the API route to avoid heavy work in webhook
+      const summaryUrl = `${env.PUBLIC_BASE_URL}/api/daily-summary${env.SUMMARY_SECRET_KEY ? `?key=${encodeURIComponent(env.SUMMARY_SECRET_KEY)}` : ''}&chatId=${encodeURIComponent(chatId)}`;
+      console.log('Triggering daily summary via API', { summaryUrl });
+      fetch(summaryUrl).catch((e) => console.error('Failed to trigger daily summary:', e));
       return; // nothing else to do
     }
 
@@ -49,6 +43,7 @@ export default async function handler(req, res) {
     }
 
     // Enqueue to QStash
+    console.log('Enqueuing voice for processing', { chatId, hasFileId: !!fileId });
     const enqueueUrl = 'https://qstash.upstash.io/v2/publish/json';
     const payload = {
       chatId,
@@ -63,11 +58,18 @@ export default async function handler(req, res) {
       'Content-Type': 'application/json'
     };
 
-    await fetch(enqueueUrl, {
+    const qstashResp = await fetch(enqueueUrl, {
       method: 'POST',
       headers,
       body: JSON.stringify(payload)
     });
+    try {
+      console.log('QStash enqueue status', { ok: qstashResp.ok, status: qstashResp.status });
+      if (!qstashResp.ok) {
+        const text = await qstashResp.text();
+        console.error('QStash enqueue failed', { status: qstashResp.status, text });
+      }
+    } catch {}
   } catch (error) {
     // Best-effort logging only; webhook already ACKed
     console.error('telegram webhook error:', error);
