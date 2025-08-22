@@ -21,18 +21,25 @@ export default async function handler(req, res) {
       return sendJson(res, 400, { error: 'Missing chatId or fileId' });
     }
 
+    console.log('Worker start', { chatId, hasFileId: !!fileId });
+
     // 1) Download voice from Telegram
     const fileUrl = await getTelegramFileUrl(fileId);
+    console.log('Worker got file URL');
     const audioBuffer = await downloadArrayBuffer(fileUrl);
+    console.log('Worker downloaded audio');
 
     // 2) Transcribe via Whisper
     const transcription = await transcribeAudio(audioBuffer);
+    console.log('Worker transcription done');
 
     // 3) Analyze with GPT-5 Mini
     const analysis = await analyzeTask(transcription);
+    console.log('Worker analyze done');
 
     // 4) Google access token
     const accessToken = await getGoogleAccessToken();
+    console.log('Worker google token ok');
 
     // 5) Map category -> task list
     const categoryToList = env.CATEGORY_TO_LIST_MAP;
@@ -46,10 +53,12 @@ export default async function handler(req, res) {
       notes: analysis.notes,
       due: analysis.due || undefined
     });
+    console.log('Worker created task');
 
     // 7) Send confirmation
     const confirm = `✅ Task created: ${analysis.title}${analysis.due ? ` (due ${analysis.due})` : ''}`;
     await sendTelegramMessage(chatId, confirm);
+    console.log('Worker sent confirmation');
 
     return sendJson(res, 200, { ok: true, transcription, analysis, createdTask });
   } catch (error) {

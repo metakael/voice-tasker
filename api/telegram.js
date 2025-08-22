@@ -18,9 +18,6 @@ export default async function handler(req, res) {
     const chatId = update?.message?.chat?.id || update?.edited_message?.chat?.id;
     const fileId = voice?.file_id;
 
-    // Always ACK quickly
-    sendJson(res, 200, { ok: true });
-
     // Handle manual summary command
     const commandToken = messageText.split(/\s+/)[0];
     if (/^\/summary(@[A-Za-z0-9_]+)?(\b|$)/.test(commandToken) && chatId) {
@@ -35,11 +32,11 @@ export default async function handler(req, res) {
       const summaryUrl = `${env.PUBLIC_BASE_URL}/api/daily-summary${env.SUMMARY_SECRET_KEY ? `?key=${encodeURIComponent(env.SUMMARY_SECRET_KEY)}` : ''}&chatId=${encodeURIComponent(chatId)}`;
       console.log('Triggering daily summary via API', { summaryUrl });
       fetch(summaryUrl).catch((e) => console.error('Failed to trigger daily summary:', e));
-      return; // nothing else to do
+      return sendJson(res, 200, { ok: true });
     }
 
     if (!fileId || !chatId) {
-      return; // ignore non-voice updates
+      return sendJson(res, 200, { ok: true }); // ignore non-voice updates
     }
 
     // Enqueue to QStash
@@ -70,6 +67,7 @@ export default async function handler(req, res) {
         console.error('QStash enqueue failed', { status: qstashResp.status, text });
       }
     } catch {}
+    return sendJson(res, 200, { ok: true });
   } catch (error) {
     // Best-effort logging only; webhook already ACKed
     console.error('telegram webhook error:', error);
