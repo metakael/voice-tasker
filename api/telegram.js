@@ -41,7 +41,8 @@ export default async function handler(req, res) {
 
     // Enqueue to QStash
     console.log('Enqueuing voice for processing', { chatId, hasFileId: !!fileId });
-    const enqueueUrl = 'https://qstash.upstash.io/v2/publish/json';
+    const targetUrl = `${env.PUBLIC_BASE_URL}/api/worker`;
+    const enqueueUrl = `https://qstash.upstash.io/v2/publish/json/${encodeURIComponent(targetUrl)}`;
     const payload = {
       chatId,
       fileId
@@ -50,7 +51,6 @@ export default async function handler(req, res) {
     const headers = {
       Authorization: `Bearer ${env.QSTASH_TOKEN}`,
       'Upstash-Method': 'POST',
-      'Upstash-Url': `${env.PUBLIC_BASE_URL}/api/worker`,
       'Upstash-Forward-Authorization': `Bearer ${env.WORKER_SHARED_SECRET}`,
       'Content-Type': 'application/json'
     };
@@ -61,7 +61,7 @@ export default async function handler(req, res) {
       body: JSON.stringify(payload)
     });
     try {
-      console.log('QStash enqueue status', { ok: qstashResp.ok, status: qstashResp.status });
+      console.log('QStash enqueue status', { ok: qstashResp.ok, status: qstashResp.status, enqueueUrl: enqueueUrl });
       if (!qstashResp.ok) {
         const text = await qstashResp.text();
         console.error('QStash enqueue failed', { status: qstashResp.status, text });
