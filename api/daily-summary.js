@@ -258,12 +258,20 @@ export default async function handler(req, res) {
       return sendJson(res, 405, { error: 'Method Not Allowed' });
     }
 
+    const cronHeader = req.headers['x-vercel-cron'];
+    const isCronJob = !!cronHeader;
+    console.log('Daily summary triggered', { 
+      isCronJob, 
+      cronHeader, 
+      userAgent: req.headers['user-agent'],
+      query: req.query 
+    });
+
     if (!env.SUMMARY_ENABLED) {
       return sendJson(res, 403, { error: 'Summary disabled' });
     }
 
     if (env.SUMMARY_SECRET_KEY) {
-      const cronHeader = req.headers['x-vercel-cron'];
       const key = req.query?.key || req.headers['x-summary-key'];
       if (!cronHeader && key !== env.SUMMARY_SECRET_KEY) {
         return sendJson(res, 401, { error: 'Unauthorized' });
