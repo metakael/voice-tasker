@@ -11,6 +11,7 @@
   "scripts": {
     "dev": "vercel dev --yes",
     "get-google-token": "node scripts/get-google-token.js",
+    "get-tasklist-ids": "node scripts/get-tasklist-ids.js",
     "vercel-build": "echo 'no build'"
   },
   "dependencies": {
