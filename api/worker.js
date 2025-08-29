@@ -44,6 +44,12 @@ export default async function handler(req, res) {
     // 5) Map category -> task list
     const categoryToList = env.CATEGORY_TO_LIST_MAP;
     const listId = categoryToList[analysis.category] || env.DEFAULT_TASKLIST_ID || undefined;
+    console.log('Category mapping', { 
+      analyzedCategory: analysis.category, 
+      mappedListId: listId,
+      defaultListId: env.DEFAULT_TASKLIST_ID,
+      categoryMap: categoryToList 
+    });
 
     // 6) Create task
     const createdTask = await createGoogleTask({
