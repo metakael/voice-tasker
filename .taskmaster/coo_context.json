@@ -1,0 +1,32 @@
+{
+  "tsa_mission": "To strengthen the charitable sector by building capacity, increasing transparency, and improving accountability across charitable organizations",
+  "coo_key_metrics": [
+    "Staff retention and development (people-first culture)",
+    "Revenue growth and sustainability (fundraising effectiveness)",
+    "Operational efficiency (process optimization)",
+    "Stakeholder satisfaction (funder and charity feedback)",
+    "Strategic initiatives completion (quarterly OKRs)"
+  ],
+  "top_priorities": [
+    "People & HR (hiring, EVP, onboarding, L&D)",
+    "Leadership Council (fundraising & funder engagement)", 
+    "CRM backbone (staffing, BD, finance integration)"
+  ],
+  "core_workstreams": [
+    "Human Resources & Talent",
+    "Financial Operations & Compliance",
+    "Business Development & Partnerships",
+    "Technology & Systems Integration",
+    "Strategic Planning & Governance"
+  ],
+  "key_partners": [
+    "Major funders and foundations",
+    "Partner charitable organizations",
+    "Government agencies and regulators",
+    "Technology vendors and consultants",
+    "Board members and advisors"
+  ],
+  "context_version": "1.5",
+  "last_updated": "2024-01-15",
+  "notes": "COO context for TSA - comprehensive reference for task prioritization and strategic alignment"
+}

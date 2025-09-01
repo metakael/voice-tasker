@@ -35,6 +35,28 @@ export default async function handler(req, res) {
       return sendJson(res, 200, { ok: true });
     }
 
+    // Handle feedback command
+    if (/^\/feedback(@[A-Za-z0-9_]+)?(\b|$)/.test(commandToken) && chatId) {
+      console.log('Telegram /feedback command detected', { chatId, commandToken });
+      try {
+        const feedbackText = messageText.replace(/^\/feedback(@[A-Za-z0-9_]+)?\s*/, '').trim();
+        if (!feedbackText) {
+          await sendTelegramMessage(chatId, '💭 Please provide feedback after the command.\n\nExample: /feedback The budget task should be higher priority than routine emails');
+          return sendJson(res, 200, { ok: true });
+        }
+
+        // Trigger feedback storage
+        const feedbackUrl = `${env.PUBLIC_BASE_URL}/api/store-feedback${env.SUMMARY_SECRET_KEY ? `?key=${encodeURIComponent(env.SUMMARY_SECRET_KEY)}` : ''}&chatId=${encodeURIComponent(chatId)}&feedback=${encodeURIComponent(feedbackText)}`;
+        console.log('Storing feedback via API', { feedbackUrl });
+        fetch(feedbackUrl).catch((e) => console.error('Failed to store feedback:', e));
+        
+        await sendTelegramMessage(chatId, '✅ Feedback received! This will help improve future task prioritization.');
+      } catch (err) {
+        console.error('Failed to handle feedback command:', err);
+      }
+      return sendJson(res, 200, { ok: true });
+    }
+
     if (!fileId || !chatId) {
       return sendJson(res, 200, { ok: true }); // ignore non-voice updates
     }
