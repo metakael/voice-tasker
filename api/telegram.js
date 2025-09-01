@@ -29,7 +29,12 @@ export default async function handler(req, res) {
       }
 
       // Fire-and-forget trigger of the API route to avoid heavy work in webhook
-      const summaryUrl = `${env.PUBLIC_BASE_URL}/api/daily-summary${env.SUMMARY_SECRET_KEY ? `?key=${encodeURIComponent(env.SUMMARY_SECRET_KEY)}` : ''}&chatId=${encodeURIComponent(chatId)}`;
+      const urlParams = new URLSearchParams();
+      if (env.SUMMARY_SECRET_KEY) {
+        urlParams.append('key', env.SUMMARY_SECRET_KEY);
+      }
+      urlParams.append('chatId', chatId);
+      const summaryUrl = `${env.PUBLIC_BASE_URL}/api/daily-summary?${urlParams.toString()}`;
       console.log('Triggering daily summary via API', { summaryUrl });
       fetch(summaryUrl).catch((e) => console.error('Failed to trigger daily summary:', e));
       return sendJson(res, 200, { ok: true });

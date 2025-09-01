@@ -268,27 +268,36 @@ export default async function handler(req, res) {
     });
 
     if (!env.SUMMARY_ENABLED) {
+      console.log('Daily summary disabled in environment');
       return sendJson(res, 403, { error: 'Summary disabled' });
     }
 
     if (env.SUMMARY_SECRET_KEY) {
       const key = req.query?.key || req.headers['x-summary-key'];
       if (!cronHeader && key !== env.SUMMARY_SECRET_KEY) {
+        console.log('Unauthorized summary request', { providedKey: key ? 'PROVIDED' : 'MISSING' });
         return sendJson(res, 401, { error: 'Unauthorized' });
       }
     }
 
+    console.log('Starting task collection and analysis...');
     const { summary: dailySummary, taskCount, messageText: telegramMessage } = await collectAndAnalyzeTasks();
+    console.log('Task analysis completed', { taskCount, summaryGenerated: !!dailySummary });
 
     const targetChatId = (req.query && req.query.chatId) ? String(req.query.chatId) : env.DAILY_SUMMARY_CHAT_ID;
     if (targetChatId) {
+      console.log('Sending summary to Telegram', { chatId: targetChatId, messageLength: telegramMessage.length });
       await sendTelegramMessage(targetChatId, telegramMessage);
+      console.log('Summary sent to Telegram successfully');
+    } else {
+      console.log('No target chat ID provided, skipping Telegram message');
     }
 
     return sendJson(res, 200, { success: true, summary: dailySummary, taskCount });
   } catch (error) {
     console.error('Daily summary error:', error);
-    return sendJson(res, 500, { error: 'Internal Server Error' });
+    console.error('Error stack:', error.stack);
+    return sendJson(res, 500, { error: 'Internal Server Error', details: error.message });
   }
 }
 
