@@ -1,32 +1,47 @@
 {
-  "tsa_mission": "To strengthen the charitable sector by building capacity, increasing transparency, and improving accountability across charitable organizations",
+  "tsa_mission": "Unlock catalytic capital for social impact across philanthropy, government, and nonprofits.",
+  "unique_metric": "Total capital catalysed – measuring how much funding TSA helps unlock and leverage into the social sector relative to its own funding.",
   "coo_key_metrics": [
-    "Staff retention and development (people-first culture)",
-    "Revenue growth and sustainability (fundraising effectiveness)",
-    "Operational efficiency (process optimization)",
-    "Stakeholder satisfaction (funder and charity feedback)",
-    "Strategic initiatives completion (quarterly OKRs)"
+    "Firm profitability (cashflow, runway, overall finance health)",
+    "Sales pipeline (conversion rate, time-to-close, cost-per-opportunity)",
+    "Project profitability (margin after direct project costs)",
+    "Consultant utilisation and sales credit (billable % and BD contribution)",
+    "Total capital catalysed (upfront funder + outcomes funder commitments)"
   ],
   "top_priorities": [
     "People & HR (hiring, EVP, onboarding, L&D)",
-    "Leadership Council (fundraising & funder engagement)", 
+    "Leadership Council (fundraising & funder engagement)",
     "CRM backbone (staffing, BD, finance integration)"
   ],
   "core_workstreams": [
-    "Human Resources & Talent",
-    "Financial Operations & Compliance",
-    "Business Development & Partnerships",
-    "Technology & Systems Integration",
-    "Strategic Planning & Governance"
+    "People & Capacity",
+    "Finance & Budgeting",
+    "Business Development & Donor Strategy",
+    "Systems & Knowledge",
+    "Funder Relationships & Governance"
   ],
   "key_partners": [
-    "Major funders and foundations",
-    "Partner charitable organizations",
-    "Government agencies and regulators",
-    "Technology vendors and consultants",
-    "Board members and advisors"
+    "Temasek Trust (TT) – core funder and ecosystem anchor",
+    "Temasek Shophouse (TSH) – convening space and visibility hub",
+    "Government agencies – outcomes funders and regulators",
+    "Philanthropists and UHNW donors – catalytic capital providers",
+    "Social service agencies – service providers implementing solutions"
   ],
-  "context_version": "1.5",
-  "last_updated": "2024-01-15",
-  "notes": "COO context for TSA - comprehensive reference for task prioritization and strategic alignment"
+  "coo_responsibilities": [
+    "Staffing and utilisation of consultants to maximise billable hours",
+    "Project budgeting – managing fixed-fee projects and associated direct costs",
+    "Overall TSA budgeting – overheads, audits, welfare, office costs",
+    "Hiring pipeline – recruitment, selection, onboarding processes",
+    "Employer Value Proposition (EVP) – compensation, benefits, employer brand",
+    "Learning & Development (onboarding, training, lunch & learns)",
+    "Leadership Council – build and manage anchor donor base",
+    "Funder relationships – stewardship of both LC and project funders",
+    "Board governance – run quarterly board meetings, support board chair",
+    "Regulatory compliance – audits, charity accreditation, IPC status goal",
+    "Tech stack – manage CRM, Clockify, Google/Microsoft integration",
+    "Knowledge management – archive and structure institutional knowledge"
+  ],
+  "context_version": "2.0",
+  "last_updated": "2025-09-01",
+  "notes": "COO context for TSA – comprehensive reference for task prioritisation, funder stewardship, and strategic alignment"
 }
