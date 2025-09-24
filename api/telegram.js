@@ -13,7 +13,6 @@ export default async function handler(req, res) {
     const update = req.body || {};
 
     const messageText = (update?.message?.text || update?.edited_message?.text || '').trim();
-    // Only process voice messages
     const voice = update?.message?.voice || update?.edited_message?.voice;
     const chatId = update?.message?.chat?.id || update?.edited_message?.chat?.id;
     const fileId = voice?.file_id;
@@ -62,15 +61,95 @@ export default async function handler(req, res) {
       return sendJson(res, 200, { ok: true });
     }
 
-    if (!fileId || !chatId) {
-      return sendJson(res, 200, { ok: true }); // ignore non-voice updates
+    // Handle /task command to create from typed text
+    if (/^\/task(@[A-Za-z0-9_]+)?(\b|$)/.test(commandToken) && chatId) {
+      try {
+        const taskText = messageText.replace(/^\/task(@[A-Za-z0-9_]+)?\s*/, '').trim();
+        if (!taskText) {
+          await sendTelegramMessage(chatId, '📝 Please provide the task text after /task.\n\nExample: /task Schedule dentist appointment next Tuesday');
+          return sendJson(res, 200, { ok: true });
+        }
+
+        await sendTelegramMessage(chatId, '🔄 Processing your message...');
+        const targetUrl = `${env.PUBLIC_BASE_URL}/api/worker`;
+        const enqueueUrl = `https://qstash.upstash.io/v2/publish/${targetUrl}`;
+        console.log('Enqueuing text via /task for processing', { chatId, hasText: true });
+        const payload = { chatId, text: taskText };
+        const headers = {
+          Authorization: `Bearer ${env.QSTASH_TOKEN}`,
+          'Upstash-Forward-Authorization': `Bearer ${env.WORKER_SHARED_SECRET}`,
+          'Content-Type': 'application/json'
+        };
+        const qstashResp = await fetch(enqueueUrl, {
+          method: 'POST',
+          headers,
+          body: JSON.stringify(payload)
+        });
+        try {
+          console.log('QStash enqueue status', { ok: qstashResp.ok, status: qstashResp.status, enqueueUrl });
+          if (!qstashResp.ok) {
+            const text = await qstashResp.text();
+            console.error('QStash enqueue failed', { status: qstashResp.status, text });
+          }
+        } catch {}
+      } catch (err) {
+        console.error('Failed to handle /task command:', err);
+      }
+      return sendJson(res, 200, { ok: true });
+    }
+
+    // Handle /start or unknown commands with a helpful hint
+    if (messageText.startsWith('/') && chatId) {
+      try {
+        await sendTelegramMessage(chatId, '👋 You can send a voice note or just type a task.\nCommands: /summary, /feedback <text>, /task <text>');
+      } catch (err) {
+        console.error('Failed to send help message for command:', err);
+      }
+      return sendJson(res, 200, { ok: true });
+    }
+
+    // If we have plain text (non-command), enqueue for processing
+    if (chatId && messageText && !messageText.startsWith('/')) {
+      try {
+        await sendTelegramMessage(chatId, '🔄 Processing your message...');
+      } catch (err) {
+        console.error('Failed to send processing ack (text):', err);
+      }
+
+      const targetUrl = `${env.PUBLIC_BASE_URL}/api/worker`;
+      const enqueueUrl = `https://qstash.upstash.io/v2/publish/${targetUrl}`;
+      console.log('Enqueuing text for processing', { chatId, hasText: true });
+      const payload = { chatId, text: messageText };
+      const headers = {
+        Authorization: `Bearer ${env.QSTASH_TOKEN}`,
+        'Upstash-Forward-Authorization': `Bearer ${env.WORKER_SHARED_SECRET}`,
+        'Content-Type': 'application/json'
+      };
+      const qstashResp = await fetch(enqueueUrl, {
+        method: 'POST',
+        headers,
+        body: JSON.stringify(payload)
+      });
+      try {
+        console.log('QStash enqueue status', { ok: qstashResp.ok, status: qstashResp.status, enqueueUrl });
+        if (!qstashResp.ok) {
+          const text = await qstashResp.text();
+          console.error('QStash enqueue failed', { status: qstashResp.status, text });
+        }
+      } catch {}
+      return sendJson(res, 200, { ok: true });
+    }
+
+    // Voice flow
+    if (!chatId || !fileId) {
+      return sendJson(res, 200, { ok: true }); // ignore updates we don't handle
     }
 
     // Send immediate processing message
     try {
-      await sendTelegramMessage(chatId, '🎤 Processing your voice note...');
+      await sendTelegramMessage(chatId, '🔄 Processing your message...');
     } catch (err) {
-      console.error('Failed to send processing ack:', err);
+      console.error('Failed to send processing ack (voice):', err);
     }
 
     // Enqueue to QStash

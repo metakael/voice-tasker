@@ -16,22 +16,26 @@ export default async function handler(req, res) {
       return sendJson(res, 401, { error: 'Unauthorized' });
     }
 
-    const { chatId, fileId } = req.body || {};
-    if (!chatId || !fileId) {
-      return sendJson(res, 400, { error: 'Missing chatId or fileId' });
+    const { chatId, fileId, text } = req.body || {};
+    if (!chatId || (!fileId && !text)) {
+      return sendJson(res, 400, { error: 'Missing chatId or input' });
     }
 
-    console.log('Worker start', { chatId, hasFileId: !!fileId });
+    console.log('Worker start', { chatId, hasFileId: !!fileId, hasText: !!text });
 
-    // 1) Download voice from Telegram
-    const fileUrl = await getTelegramFileUrl(fileId);
-    console.log('Worker got file URL');
-    const audioBuffer = await downloadArrayBuffer(fileUrl);
-    console.log('Worker downloaded audio');
-
-    // 2) Transcribe via Whisper
-    const transcription = await transcribeAudio(audioBuffer);
-    console.log('Worker transcription done');
+    // 1) Obtain transcription or use text
+    let transcription = '';
+    if (text && text.trim()) {
+      transcription = text.trim();
+      console.log('Worker using provided text');
+    } else {
+      const fileUrl = await getTelegramFileUrl(fileId);
+      console.log('Worker got file URL');
+      const audioBuffer = await downloadArrayBuffer(fileUrl);
+      console.log('Worker downloaded audio');
+      transcription = await transcribeAudio(audioBuffer);
+      console.log('Worker transcription done');
+    }
 
     // 3) Analyze with GPT-5 Mini
     const analysis = await analyzeTask(transcription);
@@ -72,7 +76,7 @@ export default async function handler(req, res) {
     try {
       const body = req.body || {};
       if (body.chatId) {
-        await sendTelegramMessage(body.chatId, '❌ Sorry, I could not process your voice note.');
+        await sendTelegramMessage(body.chatId, '❌ Sorry, I could not process your message.');
       }
     } catch {}
     return sendJson(res, 500, { error: 'Internal Server Error' });
